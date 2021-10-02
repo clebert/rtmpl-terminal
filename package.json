@@ -1,0 +1,51 @@
+{
+  "name": "@rtmpl/terminal",
+  "version": "0.0.0",
+  "description": "Dynamic terminal output.",
+  "bugs": {
+    "url": "https://github.com/clebert/rtmpl-terminal/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clebert/rtmpl-terminal.git"
+  },
+  "license": "MIT",
+  "author": "Clemens Akens <clebert@me.com>",
+  "sideEffects": false,
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "preci": "run-s setup",
+    "ci": "run-p compile format:check lint",
+    "postci": "run-s start",
+    "compile": "onecmd compile",
+    "format": "onecmd format",
+    "format:check": "onecmd format --check",
+    "lint": "onecmd lint",
+    "prepare": "run-s setup",
+    "release": "npm version",
+    "postrelease": "git push --follow-tags",
+    "setup": "onecmd setup",
+    "start": "node hello.js && node listr.js"
+  },
+  "dependencies": {
+    "string-width": "^4.2.2"
+  },
+  "devDependencies": {
+    "@onecmd/standard-plugins": "^0.11.0",
+    "@types/node": "^16.10.2",
+    "chalk": "^4.1.2",
+    "cli-spinners": "^2.6.1",
+    "npm-run-all": "^4.1.5"
+  },
+  "peerDependencies": {
+    "rtmpl": "^1.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
