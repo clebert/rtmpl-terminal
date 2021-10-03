@@ -1,6 +1,6 @@
 {
   "name": "@rtmpl/terminal",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Dynamic terminal output.",
   "bugs": {
     "url": "https://github.com/clebert/rtmpl-terminal/issues"
