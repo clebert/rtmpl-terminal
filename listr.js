@@ -1,6 +1,6 @@
 // @ts-check
 
-const chalk = require('chalk');
+const {green, red, yellow} = require('chalk');
 const {star2} = require('cli-spinners');
 const {TemplateNode} = require('rtmpl');
 const {animate, list, render} = require('./lib/cjs');
@@ -13,20 +13,21 @@ const {animate, list, render} = require('./lib/cjs');
  */
 function createFakeTask(title, duration, error) {
   const spinnerNode = TemplateNode.create``;
-  const taskNode = TemplateNode.create`  ${spinnerNode} ${title}`;
 
   animate(spinnerNode, {
     ...star2,
-    frames: star2.frames.map((frame) => chalk.yellow(frame)),
+    frames: star2.frames.map((frame) => yellow(frame)),
   });
+
+  const taskNode = TemplateNode.create`  ${spinnerNode} ${title}`;
 
   const promise = new Promise((resolve, reject) => {
     setTimeout(() => (error ? reject(error) : resolve()), duration);
   });
 
   promise
-    .then(() => taskNode.update`  ${chalk.green('✔')} ${title}`)
-    .catch(() => taskNode.update`  ${chalk.red('✖')} ${title}`);
+    .then(() => taskNode.update`  ${green('✔')} ${title}`)
+    .catch(() => taskNode.update`  ${red('✖')} ${title}`);
 
   return {node: taskNode, promise};
 }

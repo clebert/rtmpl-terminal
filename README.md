@@ -59,7 +59,7 @@ setTimeout(clear, 875 * 3);
 
 ```js
 import {animate, list, render} from '@rtmpl/terminal';
-import chalk from 'chalk';
+import {green, red, yellow} from 'chalk';
 import {star2} from 'cli-spinners';
 import {TemplateNode} from 'rtmpl';
 ```
@@ -84,20 +84,21 @@ Promise.allSettled(taskPromises).catch(() => process.exit(1));
 ```js
 function createFakeTask(title, duration, error) {
   const spinnerNode = TemplateNode.create``;
-  const taskNode = TemplateNode.create`  ${spinnerNode} ${title}`;
 
   animate(spinnerNode, {
     ...star2,
-    frames: star2.frames.map((frame) => chalk.yellow(frame)),
+    frames: star2.frames.map((frame) => yellow(frame)),
   });
+
+  const taskNode = TemplateNode.create`  ${spinnerNode} ${title}`;
 
   const promise = new Promise((resolve, reject) => {
     setTimeout(() => (error ? reject(error) : resolve()), duration);
   });
 
   promise
-    .then(() => taskNode.update`  ${chalk.green('✔')} ${title}`)
-    .catch(() => taskNode.update`  ${chalk.red('✖')} ${title}`);
+    .then(() => taskNode.update`  ${green('✔')} ${title}`)
+    .catch(() => taskNode.update`  ${red('✖')} ${title}`);
 
   return {node: taskNode, promise};
 }
