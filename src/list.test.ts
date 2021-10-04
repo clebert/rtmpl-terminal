@@ -1,3 +1,5 @@
+// Copyright 2021 Clemens Akens. All rights reserved. MIT license.
+
 import {TemplateNode} from 'rtmpl';
 import {list} from './list';
 

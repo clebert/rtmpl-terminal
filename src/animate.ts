@@ -1,3 +1,5 @@
+// Copyright 2021 Clemens Akens. All rights reserved. MIT license.
+
 import type {TemplateNode} from 'rtmpl';
 
 export interface Animation<TFrame> {

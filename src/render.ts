@@ -1,3 +1,5 @@
+// Copyright 2021 Clemens Akens. All rights reserved. MIT license.
+
 import type {TemplateNode, TemplateNodeObserver} from 'rtmpl';
 import stringWidth from 'string-width';
 
