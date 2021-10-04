@@ -34,15 +34,15 @@ import {TemplateNode} from 'rtmpl';
 
 ```js
 const placeholderNode = TemplateNode.create``;
-const salutationNode = TemplateNode.create`${placeholderNode}`;
-const subjectNode = TemplateNode.create`${placeholderNode}`;
-const greetingNode = TemplateNode.create`${salutationNode}, ${subjectNode}!`;
 
 animate(placeholderNode, {
   frames: ['∙∙∙∙∙', '●∙∙∙∙', '∙●∙∙∙', '∙∙●∙∙', '∙∙∙●∙', '∙∙∙∙●', '∙∙∙∙∙'],
   interval: 125,
 });
 
+const salutationNode = TemplateNode.create`${placeholderNode}`;
+const subjectNode = TemplateNode.create`${placeholderNode}`;
+const greetingNode = TemplateNode.create`${salutationNode}, ${subjectNode}!`;
 const clear = render(greetingNode);
 
 setTimeout(() => salutationNode.update`Hello`, 875);
