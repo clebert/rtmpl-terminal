@@ -1,5 +1,10 @@
-import type {TemplateNode} from 'rtmpl';
+import type {TemplateNode, TemplateNodeObserver} from 'rtmpl';
 import stringWidth from 'string-width';
+
+export interface RenderOptions {
+  readonly debounce?: boolean;
+  readonly stream?: WriteStream;
+}
 
 export interface WriteStream {
   readonly columns: number;
@@ -11,11 +16,12 @@ export interface WriteStream {
 
 export function render<TValue>(
   node: TemplateNode<TValue>,
-  stream: WriteStream = process.stdout
+  options: RenderOptions = {}
 ): () => void {
+  const {debounce, stream = process.stdout} = options;
   let prevLines: readonly string[] = [];
 
-  const clear = (): void => {
+  const clearScreen = () => {
     const prevRows = prevLines.reduce(
       (rows, line) =>
         rows + Math.max(Math.ceil(stringWidth(line) / stream.columns), 1),
@@ -28,9 +34,7 @@ export function render<TValue>(
     }
   };
 
-  const unsubscribe = node.subscribe((template, ...values) => {
-    clear();
-
+  const writeScreen: TemplateNodeObserver<TValue> = (template, ...values) => {
     let text = template[0]!;
 
     for (let index = 0; index < values.length; index += 1) {
@@ -45,10 +49,27 @@ export function render<TValue>(
     }
 
     prevLines = lines;
+  };
+
+  let timeoutId: any;
+
+  const unsubscribe = node.subscribe((template, ...values) => {
+    if (debounce) {
+      clearTimeout(timeoutId);
+
+      timeoutId = setTimeout(() => {
+        clearScreen();
+        writeScreen(template, ...values);
+      }, 0);
+    } else {
+      clearScreen();
+      writeScreen(template, ...values);
+    }
   });
 
   return (): void => {
     unsubscribe();
-    clear();
+    clearTimeout(timeoutId);
+    clearScreen();
   };
 }

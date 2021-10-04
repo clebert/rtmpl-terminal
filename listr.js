@@ -40,5 +40,8 @@ const tasks = [
 const taskNodes = tasks.map((task) => task.node);
 const taskPromises = tasks.map(async (task) => task.promise);
 
-render(TemplateNode.create(...list(taskNodes, {separator: '\n'})));
+render(TemplateNode.create(...list(taskNodes, {separator: '\n'})), {
+  debounce: true,
+});
+
 Promise.allSettled(taskPromises).catch(() => process.exit(1));

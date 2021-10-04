@@ -13,7 +13,7 @@ animate(placeholderNode, {
 const salutationNode = TemplateNode.create`${placeholderNode}`;
 const subjectNode = TemplateNode.create`${placeholderNode}`;
 const greetingNode = TemplateNode.create`${salutationNode}, ${subjectNode}!`;
-const clear = render(greetingNode);
+const clear = render(greetingNode, {debounce: true});
 
 setTimeout(() => salutationNode.update`Hello`, 875);
 setTimeout(() => subjectNode.update`World`, 875 * 2);

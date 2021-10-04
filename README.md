@@ -43,7 +43,7 @@ animate(placeholderNode, {
 const salutationNode = TemplateNode.create`${placeholderNode}`;
 const subjectNode = TemplateNode.create`${placeholderNode}`;
 const greetingNode = TemplateNode.create`${salutationNode}, ${subjectNode}!`;
-const clear = render(greetingNode);
+const clear = render(greetingNode, {debounce: true});
 
 setTimeout(() => salutationNode.update`Hello`, 875);
 setTimeout(() => subjectNode.update`World`, 875 * 2);
@@ -74,7 +74,10 @@ const tasks = [
 const taskNodes = tasks.map((task) => task.node);
 const taskPromises = tasks.map(async (task) => task.promise);
 
-render(TemplateNode.create(...list(taskNodes, {separator: '\n'})));
+render(TemplateNode.create(...list(taskNodes, {separator: '\n'})), {
+  debounce: true,
+});
+
 Promise.allSettled(taskPromises).catch(() => process.exit(1));
 ```
 
@@ -107,8 +110,15 @@ function createFakeTask(title, duration, error) {
 ```ts
 function render<TValue>(
   node: TemplateNode<TValue>,
-  stream: WriteStream = process.stdout
+  options?: RenderOptions
 ): () => void;
+```
+
+```ts
+interface RenderOptions {
+  readonly debounce?: boolean;
+  readonly stream?: WriteStream;
+}
 ```
 
 ```ts
