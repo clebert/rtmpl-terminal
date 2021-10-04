@@ -1,5 +1,5 @@
 import {TemplateNode} from 'rtmpl';
-import {list} from '.';
+import {list} from './list';
 
 type Composition = readonly [
   template: TemplateStringsArray,
