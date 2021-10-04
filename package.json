@@ -19,7 +19,6 @@
     "lib"
   ],
   "scripts": {
-    "preci": "run-s setup",
     "ci": "run-p compile format:check lint test",
     "postci": "run-s start",
     "compile": "onecmd compile",
@@ -37,7 +36,7 @@
     "string-width": "^4.2.2"
   },
   "devDependencies": {
-    "@onecmd/standard-plugins": "^0.11.0",
+    "@onecmd/standard-plugins": "^0.11.1",
     "@types/node": "^16.10.2",
     "chalk": "^4.1.2",
     "cli-spinners": "^2.6.1",
