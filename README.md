@@ -20,6 +20,9 @@ npm install @rtmpl/terminal --save
 
 ## Usage
 
+Use this [rtmpl](https://github.com/clebert/rtmpl)-based library to generate the
+text output of CLI applications dynamically.
+
 ### Hello, World!
 
 ![](./hello.gif)
