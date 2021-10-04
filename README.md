@@ -107,6 +107,8 @@ function createFakeTask(title, duration, error) {
 
 ## Types
 
+### `render`
+
 ```ts
 function render<TValue>(
   node: TemplateNode<TValue>,
@@ -120,6 +122,8 @@ interface RenderOptions {
   readonly stream?: WriteStream;
 }
 ```
+
+### `list`
 
 ```ts
 function list<TValue>(
@@ -136,6 +140,8 @@ interface ListOptions<TValue> {
   readonly separator?: TemplateNode<TValue> | NonNullable<TValue>;
 }
 ```
+
+### `animate`
 
 ```ts
 function animate<TFrame>(
