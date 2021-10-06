@@ -46,20 +46,14 @@ export class Terminal {
   }
 
   #open(node: TemplateNode<unknown>): () => void {
-    let timeoutId: any;
-
     const unsubscribe = node.subscribe((template, ...values) => {
-      clearTimeout(timeoutId);
+      let text = template[0]!;
 
-      timeoutId = setTimeout(() => {
-        let text = template[0]!;
+      for (let index = 0; index < values.length; index += 1) {
+        text += String(values[index]) + template[index + 1];
+      }
 
-        for (let index = 0; index < values.length; index += 1) {
-          text += String(values[index]) + template[index + 1];
-        }
-
-        this.#render(text);
-      }, 0);
+      this.#render(text);
     });
 
     const listener = (data: string) => {
