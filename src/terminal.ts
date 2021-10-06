@@ -121,7 +121,7 @@ export class Terminal {
       this.#prevPromptLines.length ? -1 : 0
     );
 
-    if (prevRows > 0) {
+    if (process.stdout.isTTY && prevRows > 0) {
       process.stdout.cursorTo(0);
       process.stdout.moveCursor(0, -prevRows);
       process.stdout.clearScreenDown();

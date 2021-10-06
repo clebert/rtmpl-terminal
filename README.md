@@ -195,6 +195,7 @@ function animate<TFrame>(
 interface Animation<TFrame> {
   readonly frames: readonly TFrame[];
   readonly interval: number;
+  readonly nonTTY?: boolean;
 }
 ```
 
