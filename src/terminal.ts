@@ -67,8 +67,8 @@ export class Terminal {
         } else if (data === '\n' || data === '\r') {
           const promptText = this.#promptText;
 
-          this.#prompt = undefined;
           this.#promptText = '';
+          this.#prompt = undefined;
           prompt.resolve(promptText);
         } else if (stringWidth(data)) {
           this.#promptText += data;
