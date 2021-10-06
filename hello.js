@@ -1,20 +1,27 @@
 // @ts-check
 
 const {TemplateNode} = require('rtmpl');
-const {animate, render} = require('./lib/cjs');
+const {Terminal, animate} = require('./lib/cjs');
 
-const placeholderNode = TemplateNode.create``;
+const Placeholder = TemplateNode.create``;
 
-animate(placeholderNode, {
+animate(Placeholder, {
   frames: ['∙∙∙∙∙', '●∙∙∙∙', '∙●∙∙∙', '∙∙●∙∙', '∙∙∙●∙', '∙∙∙∙●', '∙∙∙∙∙'],
   interval: 125,
 });
 
-const salutationNode = TemplateNode.create`${placeholderNode}`;
-const subjectNode = TemplateNode.create`${placeholderNode}`;
-const greetingNode = TemplateNode.create`${salutationNode}, ${subjectNode}!`;
-const clear = render(greetingNode, {debounce: true});
+const Salutation = TemplateNode.create`${Placeholder}`;
 
-setTimeout(() => salutationNode.update`Hello`, 875);
-setTimeout(() => subjectNode.update`World`, 875 * 2);
-setTimeout(clear, 875 * 3);
+Salutation.on('observe', () => {
+  setTimeout(() => Salutation.update`Hello`, 875);
+});
+
+const Subject = TemplateNode.create`${Placeholder}`;
+
+Subject.on('observe', () => {
+  setTimeout(() => Subject.update`World`, 875 * 2);
+});
+
+const close = Terminal.open(TemplateNode.create`${Salutation}, ${Subject}!`);
+
+setTimeout(close, 875 * 2);

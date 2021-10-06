@@ -16,6 +16,7 @@ const plugins = [
   std.prettier(),
   std.typescript('node', 'package'),
   std.vscode({showFilesInEditor: false}),
+  {setup: () => [{type: 'ref', path: '*.cast', attrs: {visible: true}}]},
 ];
 
 module.exports = plugins;

@@ -10,7 +10,9 @@
 [license-badge]: https://badgen.net/npm/license/@rtmpl/terminal
 [license-link]: https://github.com/clebert/rtmpl-terminal/blob/master/LICENSE.md
 
-Dynamic terminal output.
+Build interactive terminal apps using reactive tagged template literals.
+
+> Powered by [rtmpl](https://github.com/clebert/rtmpl)
 
 ## Installation
 
@@ -20,37 +22,79 @@ npm install @rtmpl/terminal --save
 
 ## Usage
 
-Use this [rtmpl](https://github.com/clebert/rtmpl)-based library to generate the
-text output of CLI applications dynamically.
-
-### Hello, World!
+### Greeting the world
 
 ![](./hello.gif)
 
+<details>
+  <summary>Show code</summary>
+
 ```js
-import {animate, render} from '@rtmpl/terminal';
+import {Terminal, animate} from '@rtmpl/terminal';
 import {TemplateNode} from 'rtmpl';
 ```
 
 ```js
-const placeholderNode = TemplateNode.create``;
+const Placeholder = TemplateNode.create``;
 
-animate(placeholderNode, {
+animate(Placeholder, {
   frames: ['∙∙∙∙∙', '●∙∙∙∙', '∙●∙∙∙', '∙∙●∙∙', '∙∙∙●∙', '∙∙∙∙●', '∙∙∙∙∙'],
   interval: 125,
 });
 
-const salutationNode = TemplateNode.create`${placeholderNode}`;
-const subjectNode = TemplateNode.create`${placeholderNode}`;
-const greetingNode = TemplateNode.create`${salutationNode}, ${subjectNode}!`;
-const clear = render(greetingNode, {debounce: true});
+const Salutation = TemplateNode.create`${Placeholder}`;
 
-setTimeout(() => salutationNode.update`Hello`, 875);
-setTimeout(() => subjectNode.update`World`, 875 * 2);
-setTimeout(clear, 875 * 3);
+Salutation.on('observe', () => {
+  setTimeout(() => Salutation.update`Hello`, 875);
+});
+
+const Subject = TemplateNode.create`${Placeholder}`;
+
+Subject.on('observe', () => {
+  setTimeout(() => Subject.update`World`, 875 * 2);
+});
+
+const close = Terminal.open(TemplateNode.create`${Salutation}, ${Subject}!`);
+
+setTimeout(close, 875 * 2);
 ```
 
-### Implementation of a task list as with [listr](https://github.com/SamVerschueren/listr)
+</details>
+
+### Prompting the user
+
+![](./prompt.gif)
+
+<details>
+  <summary>Show code</summary>
+
+```js
+import {Terminal, animate} from '@rtmpl/terminal';
+import {fingerDance} from 'cli-spinners';
+import {TemplateNode} from 'rtmpl';
+```
+
+```js
+const Spinner = TemplateNode.create``;
+
+animate(Spinner, fingerDance);
+
+const Username = TemplateNode.create`Please enter your name ${Spinner}`;
+
+Username.on('observe', () => {
+  Terminal.instance
+    .prompt()
+    .then((username) => Username.update`Hello, ${username || 'stranger'}!`);
+});
+
+const close = Terminal.open(Username);
+
+Terminal.instance.prompt().then(close);
+```
+
+</details>
+
+### Listing tasks (as with [listr](https://github.com/SamVerschueren/listr))
 
 ![](./listr.gif)
 
@@ -58,7 +102,7 @@ setTimeout(clear, 875 * 3);
   <summary>Show code</summary>
 
 ```js
-import {animate, list, render} from '@rtmpl/terminal';
+import {Terminal, animate, list} from '@rtmpl/terminal';
 import {green, red, yellow} from 'chalk';
 import {star2} from 'cli-spinners';
 import {TemplateNode} from 'rtmpl';
@@ -71,36 +115,38 @@ const tasks = [
   createFakeTask('baz', 1000),
 ];
 
-const taskNodes = tasks.map((task) => task.node);
-const taskPromises = tasks.map(async (task) => task.promise);
+const TaskList = TemplateNode.create(
+  ...list(
+    tasks.map((task) => task.Task),
+    {separator: '\n'}
+  )
+);
 
-render(TemplateNode.create(...list(taskNodes, {separator: '\n'})), {
-  debounce: true,
-});
+const close = Terminal.open(TaskList);
 
-Promise.allSettled(taskPromises).catch(() => process.exit(1));
+Promise.allSettled(tasks.map(async (task) => task.promise)).then(close);
 ```
 
 ```js
 function createFakeTask(title, duration, error) {
-  const spinnerNode = TemplateNode.create``;
+  const Spinner = TemplateNode.create``;
 
-  animate(spinnerNode, {
+  animate(Spinner, {
     ...star2,
     frames: star2.frames.map((frame) => yellow(frame)),
   });
 
-  const taskNode = TemplateNode.create`  ${spinnerNode} ${title}`;
+  const Task = TemplateNode.create`  ${Spinner} ${title}`;
 
   const promise = new Promise((resolve, reject) => {
     setTimeout(() => (error ? reject(error) : resolve()), duration);
   });
 
   promise
-    .then(() => taskNode.update`  ${green('✔')} ${title}`)
-    .catch(() => taskNode.update`  ${red('✖')} ${title}`);
+    .then(() => Task.update`  ${green('✔')} ${title}`)
+    .catch(() => Task.update`  ${red('✖')} ${title}`);
 
-  return {node: taskNode, promise};
+  return {Task, promise};
 }
 ```
 
@@ -108,19 +154,13 @@ function createFakeTask(title, duration, error) {
 
 ## Types
 
-### `render`
+### `Terminal`
 
 ```ts
-function render<TValue>(
-  node: TemplateNode<TValue>,
-  options?: RenderOptions
-): () => void;
-```
-
-```ts
-interface RenderOptions {
-  readonly debounce?: boolean;
-  readonly stream?: WriteStream;
+class Terminal {
+  static get instance(): Terminal | undefined;
+  static open(node: TemplateNode<unknown>): () => void;
+  prompt(): Promise<string>;
 }
 ```
 
