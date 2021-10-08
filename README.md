@@ -35,27 +35,22 @@ import {TemplateNode} from 'rtmpl';
 ```
 
 ```js
-const Placeholder = TemplateNode.create``;
+const placeholderNode = TemplateNode.create``;
 
-animate(Placeholder, {
+animate(placeholderNode, {
   frames: ['∙∙∙∙∙', '●∙∙∙∙', '∙●∙∙∙', '∙∙●∙∙', '∙∙∙●∙', '∙∙∙∙●', '∙∙∙∙∙'],
   interval: 125,
 });
 
-const Salutation = TemplateNode.create`${Placeholder}`;
+const salutationNode = TemplateNode.create`${placeholderNode}`;
+const subjectNode = TemplateNode.create`${placeholderNode}`;
 
-Salutation.on('observe', () => {
-  setTimeout(() => Salutation.update`Hello`, 875);
-});
+const close = Terminal.open(
+  TemplateNode.create`${salutationNode}, ${subjectNode}!`
+);
 
-const Subject = TemplateNode.create`${Placeholder}`;
-
-Subject.on('observe', () => {
-  setTimeout(() => Subject.update`World`, 875 * 2);
-});
-
-const close = Terminal.open(TemplateNode.create`${Salutation}, ${Subject}!`);
-
+setTimeout(() => salutationNode.update`Hello`, 875);
+setTimeout(() => subjectNode.update`World`, 875 * 2);
 setTimeout(close, 875 * 2);
 ```
 
@@ -75,21 +70,17 @@ import {TemplateNode} from 'rtmpl';
 ```
 
 ```js
-const Spinner = TemplateNode.create``;
+const spinnerNode = TemplateNode.create``;
 
-animate(Spinner, fingerDance);
+animate(spinnerNode, fingerDance);
 
-const Username = TemplateNode.create`Please enter your name ${Spinner}`;
+const usernameNode = TemplateNode.create`Please enter your name ${spinnerNode}`;
+const close = Terminal.open(usernameNode);
 
-Username.on('observe', () => {
-  Terminal.instance
-    .prompt()
-    .then((username) => Username.update`Hello, ${username || 'stranger'}!`);
-});
-
-const close = Terminal.open(Username);
-
-Terminal.instance.prompt().then(close);
+Terminal.instance
+  .prompt()
+  .then((username) => usernameNode.update`Hello, ${username || 'stranger'}!`)
+  .finally(close);
 ```
 
 </details>
@@ -102,51 +93,43 @@ Terminal.instance.prompt().then(close);
   <summary>Show code</summary>
 
 ```js
-import {Terminal, animate, list} from '@rtmpl/terminal';
+import {Terminal, animate} from '@rtmpl/terminal';
 import {green, red, yellow} from 'chalk';
 import {star2} from 'cli-spinners';
-import {TemplateNode} from 'rtmpl';
+import {TemplateNode, TemplateNodeList} from 'rtmpl';
 ```
 
 ```js
-const tasks = [
-  createFakeTask('foo', 2000),
-  createFakeTask('bar', 3000, new Error()),
-  createFakeTask('baz', 1000),
-];
+const taskNodeList = new TemplateNodeList({separator: '\n'});
+const close = Terminal.open(taskNodeList.node);
 
-const TaskList = TemplateNode.create(
-  ...list(
-    tasks.map((task) => task.Task),
-    {separator: '\n'}
-  )
-);
-
-const close = Terminal.open(TaskList);
-
-Promise.allSettled(tasks.map(async (task) => task.promise)).then(close);
+Promise.allSettled([
+  doSomeTask(taskNodeList, 'foo', 2000),
+  doSomeTask(taskNodeList, 'bar', 3000),
+  doSomeTask(taskNodeList, 'baz', 1000),
+]).finally(close);
 ```
 
 ```js
-function createFakeTask(title, duration, error) {
-  const Spinner = TemplateNode.create``;
+async function doSomeTask(nodeList, title, duration) {
+  const spinnerNode = TemplateNode.create``;
 
-  animate(Spinner, {
+  animate(spinnerNode, {
     ...star2,
     frames: star2.frames.map((frame) => yellow(frame)),
   });
 
-  const Task = TemplateNode.create`  ${Spinner} ${title}`;
+  const node = nodeList.add`  ${spinnerNode} ${title}`;
 
   const promise = new Promise((resolve, reject) => {
-    setTimeout(() => (error ? reject(error) : resolve()), duration);
+    setTimeout(() => (title === 'bar' ? reject() : resolve()), duration);
   });
 
   promise
-    .then(() => Task.update`  ${green('✔')} ${title}`)
-    .catch(() => Task.update`  ${red('✖')} ${title}`);
+    .then(() => node.update`  ${green('✔')} ${title}`)
+    .catch(() => node.update`  ${red('✖')} ${title}`);
 
-  return {Task, promise};
+  return promise;
 }
 ```
 
@@ -161,24 +144,6 @@ class Terminal {
   static get instance(): Terminal | undefined;
   static open(node: TemplateNode<unknown>): () => void;
   prompt(): Promise<string>;
-}
-```
-
-### `list`
-
-```ts
-function list<TValue>(
-  items: readonly (TemplateNode<TValue> | TValue)[],
-  options?: ListOptions<TValue>
-): [
-  template: TemplateStringsArray,
-  ...children: (TemplateNode<TValue> | TValue)[]
-];
-```
-
-```ts
-interface ListOptions<TValue> {
-  readonly separator?: TemplateNode<TValue> | NonNullable<TValue>;
 }
 ```
 

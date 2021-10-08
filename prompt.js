@@ -1,22 +1,17 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 // @ts-check
 
 const {fingerDance} = require('cli-spinners');
 const {TemplateNode} = require('rtmpl');
 const {Terminal, animate} = require('./lib/cjs');
 
-const Spinner = TemplateNode.create``;
+const spinnerNode = TemplateNode.create``;
 
-animate(Spinner, fingerDance);
+animate(spinnerNode, fingerDance);
 
-const Username = TemplateNode.create`Please enter your name ${Spinner}`;
+const usernameNode = TemplateNode.create`Please enter your name ${spinnerNode}`;
+const close = Terminal.open(usernameNode);
 
-Username.on('observe', () => {
-  Terminal.instance
-    .prompt()
-    .then((username) => Username.update`Hello, ${username || 'stranger'}!`);
-});
-
-const close = Terminal.open(Username);
-
-Terminal.instance.prompt().then(close);
+Terminal.instance
+  .prompt()
+  .then((username) => usernameNode.update`Hello, ${username || 'stranger'}!`)
+  .finally(close);

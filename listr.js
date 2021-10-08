@@ -1,51 +1,42 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 // @ts-check
 
 const {green, red, yellow} = require('chalk');
 const {star2} = require('cli-spinners');
-const {TemplateNode} = require('rtmpl');
-const {Terminal, animate, list} = require('./lib/cjs');
+const {TemplateNode, TemplateNodeList} = require('rtmpl');
+const {Terminal, animate} = require('./lib/cjs');
 
-const tasks = [
-  createFakeTask('foo', 2000),
-  createFakeTask('bar', 3000, new Error()),
-  createFakeTask('baz', 1000),
-];
+const taskNodeList = new TemplateNodeList({separator: '\n'});
+const close = Terminal.open(taskNodeList.node);
 
-const TaskList = TemplateNode.create(
-  ...list(
-    tasks.map((task) => task.Task),
-    {separator: '\n'}
-  )
-);
-
-const close = Terminal.open(TaskList);
-
-Promise.allSettled(tasks.map(async (task) => task.promise)).then(close);
+Promise.allSettled([
+  doSomeTask(taskNodeList, 'foo', 2000),
+  doSomeTask(taskNodeList, 'bar', 3000),
+  doSomeTask(taskNodeList, 'baz', 1000),
+]).finally(close);
 
 /**
+ * @param {TemplateNodeList<string>} nodeList
  * @param {string} title
  * @param {number} duration
- * @param {Error} [error]
- * @returns {{Task: import('rtmpl').TemplateNode<string>, promise: Promise<void>}}
+ * @returns {Promise<void>}
  */
-function createFakeTask(title, duration, error) {
-  const Spinner = TemplateNode.create``;
+async function doSomeTask(nodeList, title, duration) {
+  const spinnerNode = TemplateNode.create``;
 
-  animate(Spinner, {
+  animate(spinnerNode, {
     ...star2,
     frames: star2.frames.map((frame) => yellow(frame)),
   });
 
-  const Task = TemplateNode.create`  ${Spinner} ${title}`;
+  const node = nodeList.add`  ${spinnerNode} ${title}`;
 
   const promise = new Promise((resolve, reject) => {
-    setTimeout(() => (error ? reject(error) : resolve()), duration);
+    setTimeout(() => (title === 'bar' ? reject() : resolve()), duration);
   });
 
   promise
-    .then(() => Task.update`  ${green('✔')} ${title}`)
-    .catch(() => Task.update`  ${red('✖')} ${title}`);
+    .then(() => node.update`  ${green('✔')} ${title}`)
+    .catch(() => node.update`  ${red('✖')} ${title}`);
 
-  return {Task, promise};
+  return promise;
 }

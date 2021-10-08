@@ -2,7 +2,7 @@
 
 import type {TemplateNode} from 'rtmpl';
 import stringWidth from 'string-width';
-import {Deferred, defer} from './defer';
+import {Deferred, defer} from './util/defer';
 
 export class Terminal {
   static #instance: Terminal | undefined;
