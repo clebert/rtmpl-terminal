@@ -4,144 +4,138 @@ import type {TemplateNode} from 'rtmpl';
 import stringWidth from 'string-width';
 import {Deferred, defer} from './util/defer';
 
+export type TerminalBackend = TTYBackend | NonTTYBackend;
+
+export interface TTYBackend {
+  readonly tty: true;
+  readonly columns: number;
+  clearScreen(rows: number): void;
+  onData(listener: (data: string) => void): () => void;
+  write(data: string): void;
+}
+
+export interface NonTTYBackend {
+  readonly tty: false;
+  write(data: string): void;
+}
+
+export interface Animation<TFrame> {
+  readonly frames: readonly TFrame[];
+  readonly interval: number;
+  readonly nonTTY?: boolean;
+}
+
 export class Terminal {
-  static #instance: Terminal | undefined;
+  #backend: TerminalBackend;
+  #close: (() => void) | undefined;
+  #prevOutput = '';
+  #input = '';
+  #prevInput = '';
+  #prompt?: Deferred<string | undefined>;
 
-  static get instance(): Terminal | undefined {
-    return Terminal.#instance;
-  }
+  constructor(backend: TerminalBackend, node: TemplateNode<unknown>) {
+    this.#backend = backend;
 
-  static open(node: TemplateNode<unknown>): () => void {
-    if (Terminal.#instance) {
-      throw new Error('Another terminal is already open.');
-    }
-
-    const instance = new Terminal();
-
-    Terminal.#instance = instance;
-
-    const close = instance.#open(node);
-
-    return (): void => {
-      if (instance === Terminal.#instance) {
-        Terminal.#instance = undefined;
-        close();
-      }
-    };
-  }
-
-  #prevLines: string[] = [];
-  #prevPromptLines: string[] = [];
-  #promptText = '';
-  #prompt?: Deferred<string>;
-
-  private constructor() {}
-
-  async prompt(): Promise<string> {
-    if (this !== Terminal.#instance) {
-      throw new Error('This terminal has already been closed.');
-    }
-
-    return (this.#prompt ?? (this.#prompt = defer())).promise;
-  }
-
-  #open(node: TemplateNode<unknown>): () => void {
     const unsubscribe = node.subscribe((template, ...values) => {
-      let text = template[0]!;
+      let output = template[0]!;
 
       for (let index = 0; index < values.length; index += 1) {
-        text += String(values[index]) + template[index + 1];
+        output += String(values[index]) + template[index + 1];
       }
 
-      this.#render(text);
+      this.#render(output);
     });
 
-    const listener = (data: string) => {
-      const prompt = this.#prompt;
+    const offData = backend.tty
+      ? backend.onData((data: string) => {
+          const prompt = this.#prompt;
 
-      if (data === '\u0003') {
-        process.exit();
-      } else if (prompt) {
-        if (data === '\b' || data === '\x7f') {
-          this.#promptText = this.#promptText.slice(0, -1);
-        } else if (data === '\n' || data === '\r') {
-          const promptText = this.#promptText;
+          if (prompt) {
+            if (data === '\b' || data === '\u007f') {
+              this.#input = this.#input.slice(0, -1);
+            } else if (data === '\r') {
+              const input = this.#input;
 
-          this.#promptText = '';
-          this.#prompt = undefined;
-          prompt.resolve(promptText);
-        } else if (stringWidth(data)) {
-          this.#promptText += data;
-        }
+              this.#input = '';
+              this.#prompt = undefined;
+              prompt.resolve(input);
+            } else if (stringWidth(data)) {
+              this.#input += data;
+            } else {
+              return;
+            }
 
-        this.#render();
-      }
-    };
+            this.#render();
+          }
+        })
+      : undefined;
 
-    process.stdin.setEncoding('utf-8');
-
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode(true);
-    }
-
-    process.stdin.on('data', listener);
-    process.stdin.resume();
-
-    return () => {
+    this.#close = () => {
       unsubscribe();
-
-      if (process.stdin.isTTY) {
-        process.stdin.setRawMode(false);
-      }
-
-      process.stdin.off('data', listener);
-      process.stdin.pause();
-
-      const prompt = this.#prompt;
-
-      if (prompt) {
-        prompt.reject(
-          new Error('The terminal associated with the prompt has been closed.')
-        );
-      }
+      offData?.();
+      this.#prompt?.resolve(undefined);
     };
   }
 
-  #render(text?: string): void {
-    const prevRows = [...this.#prevLines, ...this.#prevPromptLines].reduce(
-      (rows, line) =>
-        rows +
-        Math.max(Math.ceil(stringWidth(line) / process.stdout.columns), 1),
-      this.#prevPromptLines.length ? -1 : 0
-    );
+  close(): void {
+    this.#close?.();
+    this.#close = undefined;
+  }
 
-    if (process.stdout.isTTY && prevRows > 0) {
-      process.stdout.cursorTo(0);
-      process.stdout.moveCursor(0, -prevRows);
-      process.stdout.clearScreenDown();
-    }
+  async prompt(): Promise<string | undefined> {
+    return this.#close && this.#backend.tty
+      ? (this.#prompt ?? (this.#prompt = defer())).promise
+      : undefined;
+  }
 
-    const lines = text?.split('\n');
+  /* istanbul ignore next */
+  animate<TFrame>(
+    node: TemplateNode<TFrame>,
+    animation: Animation<TFrame>
+  ): () => void {
+    const {frames, interval, nonTTY} = animation;
+    let intervalId: any;
+    let index = 0;
 
-    for (const line of lines ?? this.#prevLines) {
-      process.stdout.write(line);
-      process.stdout.write('\n');
-    }
-
-    if (lines) {
-      this.#prevLines = lines;
-    }
-
-    if (this.#promptText) {
-      const promptLines = this.#promptText.split('\n');
-
-      for (const promptLine of promptLines) {
-        process.stdout.write(promptLine);
+    const off1 = node.on('observe', () => {
+      if (this.#backend.tty || nonTTY) {
+        intervalId = setInterval(() => {
+          index = index < frames.length - 1 ? index + 1 : 0;
+          node.update`${frames[index]!}`;
+        }, interval);
       }
+    });
 
-      this.#prevPromptLines = promptLines;
-    } else {
-      this.#prevPromptLines = [];
+    const off2 = node.on('unobserve', () => {
+      clearInterval(intervalId);
+    });
+
+    node.update`${frames[index]!}`;
+
+    return (): void => {
+      clearInterval(intervalId);
+      off1();
+      off2();
+    };
+  }
+
+  #render(output: string = this.#prevOutput): void {
+    if (this.#backend.tty) {
+      const {columns} = this.#backend;
+
+      this.#backend.clearScreen(
+        (this.#prevOutput + this.#prevInput + '█')
+          .split('\n')
+          .reduce(
+            (rows, line) =>
+              rows + Math.max(Math.ceil(stringWidth(line) / columns), 1),
+            0
+          )
+      );
     }
+
+    this.#backend.write(output + this.#input);
+    this.#prevOutput = output;
+    this.#prevInput = this.#input;
   }
 }

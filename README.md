@@ -30,28 +30,28 @@ npm install @rtmpl/terminal --save
   <summary>Show code</summary>
 
 ```js
-import {Terminal, animate} from '@rtmpl/terminal';
+import {Terminal, createNodejsBackend} from '@rtmpl/terminal';
 import {TemplateNode} from 'rtmpl';
 ```
 
 ```js
 const placeholderNode = TemplateNode.create``;
+const salutationNode = TemplateNode.create`${placeholderNode}`;
+const subjectNode = TemplateNode.create`${placeholderNode}`;
 
-animate(placeholderNode, {
+const terminal = new Terminal(
+  createNodejsBackend(),
+  TemplateNode.create`${salutationNode}, ${subjectNode}!\n`
+);
+
+terminal.animate(placeholderNode, {
   frames: ['∙∙∙∙∙', '●∙∙∙∙', '∙●∙∙∙', '∙∙●∙∙', '∙∙∙●∙', '∙∙∙∙●', '∙∙∙∙∙'],
   interval: 125,
 });
 
-const salutationNode = TemplateNode.create`${placeholderNode}`;
-const subjectNode = TemplateNode.create`${placeholderNode}`;
-
-const close = Terminal.open(
-  TemplateNode.create`${salutationNode}, ${subjectNode}!`
-);
-
 setTimeout(() => salutationNode.update`Hello`, 875);
 setTimeout(() => subjectNode.update`World`, 875 * 2);
-setTimeout(close, 875 * 2);
+setTimeout(() => terminal.close(), 875 * 2);
 ```
 
 </details>
@@ -64,23 +64,22 @@ setTimeout(close, 875 * 2);
   <summary>Show code</summary>
 
 ```js
-import {Terminal, animate} from '@rtmpl/terminal';
+import {Terminal, createNodejsBackend} from '@rtmpl/terminal';
 import {fingerDance} from 'cli-spinners';
 import {TemplateNode} from 'rtmpl';
 ```
 
 ```js
 const spinnerNode = TemplateNode.create``;
+const usernameNode = TemplateNode.create`Please enter your name ${spinnerNode}\n`;
+const terminal = new Terminal(createNodejsBackend(), usernameNode);
 
-animate(spinnerNode, fingerDance);
+terminal.animate(spinnerNode, fingerDance);
 
-const usernameNode = TemplateNode.create`Please enter your name ${spinnerNode}`;
-const close = Terminal.open(usernameNode);
-
-Terminal.instance
+terminal
   .prompt()
-  .then((username) => usernameNode.update`Hello, ${username || 'stranger'}!`)
-  .finally(close);
+  .then((username) => usernameNode.update`Hello, ${username || 'stranger'}!\n`)
+  .finally(() => terminal.close());
 ```
 
 </details>
@@ -93,7 +92,7 @@ Terminal.instance
   <summary>Show code</summary>
 
 ```js
-import {Terminal, animate} from '@rtmpl/terminal';
+import {Terminal, createNodejsBackend} from '@rtmpl/terminal';
 import {green, red, yellow} from 'chalk';
 import {star2} from 'cli-spinners';
 import {TemplateNode, TemplateNodeList} from 'rtmpl';
@@ -101,25 +100,29 @@ import {TemplateNode, TemplateNodeList} from 'rtmpl';
 
 ```js
 const taskNodeList = new TemplateNodeList({separator: '\n'});
-const close = Terminal.open(taskNodeList.node);
+
+const terminal = new Terminal(
+  createNodejsBackend(),
+  TemplateNode.create`${taskNodeList.node}\n`
+);
 
 Promise.allSettled([
-  doSomeTask(taskNodeList, 'foo', 2000),
-  doSomeTask(taskNodeList, 'bar', 3000),
-  doSomeTask(taskNodeList, 'baz', 1000),
-]).finally(close);
+  doSomeTask('foo', 2000),
+  doSomeTask('bar', 3000),
+  doSomeTask('baz', 1000),
+]).finally(() => terminal.close());
 ```
 
 ```js
-async function doSomeTask(nodeList, title, duration) {
+async function doSomeTask(title, duration) {
   const spinnerNode = TemplateNode.create``;
 
-  animate(spinnerNode, {
+  terminal.animate(spinnerNode, {
     ...star2,
     frames: star2.frames.map((frame) => yellow(frame)),
   });
 
-  const node = nodeList.add`  ${spinnerNode} ${title}`;
+  const node = taskNodeList.add`  ${spinnerNode} ${title}`;
 
   const promise = new Promise((resolve, reject) => {
     setTimeout(() => (title === 'bar' ? reject() : resolve()), duration);
@@ -141,19 +144,35 @@ async function doSomeTask(nodeList, title, duration) {
 
 ```ts
 class Terminal {
-  static get instance(): Terminal | undefined;
-  static open(node: TemplateNode<unknown>): () => void;
-  prompt(): Promise<string>;
+  constructor(backend: TerminalBackend, node: TemplateNode<unknown>);
+
+  close(): void;
+  prompt(): Promise<string | undefined>;
+
+  animate<TFrame>(
+    node: TemplateNode<TFrame>,
+    animation: Animation<TFrame>
+  ): () => void;
 }
 ```
 
-### `animate`
-
 ```ts
-function animate<TFrame>(
-  node: TemplateNode<TFrame>,
-  animation: Animation<TFrame>
-): () => void;
+type TerminalBackend = TTYBackend | NonTTYBackend;
+
+interface TTYBackend {
+  readonly tty: true;
+  readonly columns: number;
+
+  clearScreen(rows: number): void;
+  onData(listener: (data: string) => void): () => void;
+  write(data: string): void;
+}
+
+interface NonTTYBackend {
+  readonly tty: false;
+
+  write(data: string): void;
+}
 ```
 
 ```ts
@@ -162,6 +181,12 @@ interface Animation<TFrame> {
   readonly interval: number;
   readonly nonTTY?: boolean;
 }
+```
+
+### `createNodejsBackend`
+
+```ts
+function createNodejsBackend(): TerminalBackend;
 ```
 
 ---

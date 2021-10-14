@@ -19,8 +19,8 @@
     "lib"
   ],
   "scripts": {
-    "ci": "run-p compile format:check lint",
-    "postci": "run-s test",
+    "ci": "run-p compile format:check lint test",
+    "postci": "run-s start",
     "compile": "onecmd compile",
     "format": "onecmd format",
     "format:check": "onecmd format --check",
@@ -29,7 +29,8 @@
     "release": "npm version",
     "postrelease": "git push --follow-tags",
     "setup": "onecmd setup",
-    "test": "node hello.js && node listr.js"
+    "start": "node hello.js && node listr.js",
+    "test": "onecmd test"
   },
   "dependencies": {
     "string-width": "^4.2.2"
